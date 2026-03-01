@@ -4,11 +4,21 @@
 
 package frc.robot;
 
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
+
+import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.RadiansPerSecond;
+import static edu.wpi.first.units.Units.RotationsPerSecond;
 import static frc.robot.Constants.OperatorConstants.*;
+
+import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
+import com.ctre.phoenix6.swerve.SwerveRequest;
 
 import frc.robot.commands.ClimbDown;
 import frc.robot.commands.ClimbUp;
@@ -17,9 +27,11 @@ import frc.robot.commands.Eject;
 import frc.robot.commands.ExampleAuto;
 import frc.robot.commands.Intake;
 import frc.robot.commands.LaunchSequence;
+import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CANDriveSubsystem;
 import frc.robot.subsystems.CANFuelSubsystem;
 import frc.robot.subsystems.ClimberSubsystem;
+import frc.robot.subsystems.SwerveDriveSubsystem;
 
 /**
  * This class is where the bulk of the robot should be declared. Since
@@ -29,18 +41,31 @@ import frc.robot.subsystems.ClimberSubsystem;
  * commands, and trigger mappings) should be declared here.
  */
 public class RobotContainer {
+
+  private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
+  private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
+
+  /* Setting up bindings for necessary control of the swerve drive platform */
+  private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
+          .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1) // Add a 10% deadband
+          .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // Use open-loop control for drive motors
+  private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
+  private final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
+
+  private final Telemetry logger = new Telemetry(MaxSpeed);
+
   // The robot's subsystems
-  private final CANDriveSubsystem driveSubsystem = new CANDriveSubsystem();
-  private final CANFuelSubsystem fuelSubsystem = new CANFuelSubsystem();
-  private final ClimberSubsystem climberSubsystem = new ClimberSubsystem();
+  public final SwerveDriveSubsystem driveSubsystem = TunerConstants.createDrivetrain();
+  // private final CANFuelSubsystem fuelSubsystem = new CANFuelSubsystem();
+  // private final ClimberSubsystem climberSubsystem = new ClimberSubsystem();
 
   // The driver's controller
   private final CommandXboxController driverController = new CommandXboxController(
       DRIVER_CONTROLLER_PORT);
 
   // The operator's controller, by default it is setup to use a single controller
-  private final CommandXboxController operatorController = new CommandXboxController(
-      OPERATOR_CONTROLLER_PORT);
+  // private final CommandXboxController operatorController = new CommandXboxController(
+  //     OPERATOR_CONTROLLER_PORT);
 
   // The autonomous chooser
   private final SendableChooser<Command> autoChooser = new SendableChooser<>();
@@ -54,7 +79,7 @@ public class RobotContainer {
     // Set the options to show up in the Dashboard for selecting auto modes. If you
     // add additional auto modes you can add additional lines here with
     // autoChooser.addOption
-    autoChooser.setDefaultOption("Autonomous", new ExampleAuto(driveSubsystem, fuelSubsystem));
+    // autoChooser.setDefaultOption("Autonomous", new ExampleAuto(driveSubsystem, fuelSubsystem));
   }
 
   /**
@@ -70,30 +95,57 @@ public class RobotContainer {
    */
   private void configureBindings() {
 
-    // While the left bumper on operator controller is held, intake Fuel
-    driverController.leftBumper().whileTrue(new Intake(fuelSubsystem));
-    // While the right bumper on the operator controller is held, spin up for 1
-    // second, then launch fuel. When the button is released, stop.
-    driverController.rightBumper().whileTrue(new LaunchSequence(fuelSubsystem));
-    // While the A button is held on the operator controller, eject fuel back out
-    // the intake
-    driverController.a().whileTrue(new Eject(fuelSubsystem));
-   // While the down arrow on the directional pad is held it will unclimb the robot
-    driverController.povDown().whileTrue(new ClimbDown(climberSubsystem));
-    // While the up arrow on the directional pad is held it will cimb the robot
-    driverController.povUp().whileTrue(new ClimbUp(climberSubsystem));
+    // Note that X is defined as forward according to WPILib convention,
+    // and Y is defined as to the left according to WPILib convention.
+    driveSubsystem.setDefaultCommand(
+        // driveSubsystem will execute this command periodically
+        driveSubsystem.applyRequest(() ->
+            drive.withVelocityX(-driverController.getLeftY() * MaxSpeed) // Drive forward with negative Y (forward)
+                .withVelocityY(-driverController.getLeftX() * MaxSpeed) // Drive left with negative X (left)
+                .withRotationalRate(-driverController.getRightX() * MaxAngularRate) // Drive counterclockwise with negative X (left)
+        )
+    );
 
-    // Set the default command for the drive subsystem to the command provided by
-    // factory with the values provided by the joystick axes on the driver
-    // controller. The Y axis of the controller is inverted so that pushing the
-    // stick away from you (a negative value) drives the robot forwards (a positive
-    // value)
-    driveSubsystem.setDefaultCommand(new Drive(driveSubsystem, driverController));
+    // Idle while the robot is disabled. This ensures the configured
+    // neutral mode is applied to the drive motors while disabled.
+    final var idle = new SwerveRequest.Idle();
+    RobotModeTriggers.disabled().whileTrue(
+        driveSubsystem.applyRequest(() -> idle).ignoringDisable(true)
+    );
 
-    fuelSubsystem.setDefaultCommand(fuelSubsystem.run(() -> fuelSubsystem.stop()));
+    driverController.a().whileTrue(driveSubsystem.applyRequest(() -> brake));
+    driverController.b().whileTrue(driveSubsystem.applyRequest(() ->
+        point.withModuleDirection(new Rotation2d(-driverController.getLeftY(), -driverController.getLeftX()))
+    ));
 
-    climberSubsystem.setDefaultCommand(climberSubsystem.run(() -> climberSubsystem.stop()));
+    // Run SysId routines when holding back/start and X/Y.
+    // Note that each routine should be run exactly once in a single log.
+    driverController.back().and(driverController.y()).whileTrue(driveSubsystem.sysIdDynamic(Direction.kForward));
+    driverController.back().and(driverController.x()).whileTrue(driveSubsystem.sysIdDynamic(Direction.kReverse));
+    driverController.start().and(driverController.y()).whileTrue(driveSubsystem.sysIdQuasistatic(Direction.kForward));
+    driverController.start().and(driverController.x()).whileTrue(driveSubsystem.sysIdQuasistatic(Direction.kReverse));
 
+    // Reset the field-centric heading on left bumper press.
+    driverController.leftBumper().onTrue(driveSubsystem.runOnce(driveSubsystem::seedFieldCentric));
+
+    driveSubsystem.registerTelemetry(logger::telemeterize);
+
+  //   // While the left bumper on operator controller is held, intake Fuel
+  //   operatorController.leftBumper().whileTrue(new Intake(fuelSubsystem));
+  //   // While the right bumper on the operator controller is held, spin up for 1
+  //   // second, then launch fuel. When the button is released, stop.
+  //   operatorController.rightBumper().whileTrue(new LaunchSequence(fuelSubsystem));
+  //   // While the A button is held on the operator controller, eject fuel back out
+  //   // the intake
+  //   operatorController.a().whileTrue(new Eject(fuelSubsystem));
+  //  // While the down arrow on the directional pad is held it will unclimb the robot
+  //   operatorController.povDown().whileTrue(new ClimbDown(climberSubsystem));
+  //   // While the up arrow on the directional pad is held it will cimb the robot
+  //   operatorController.povUp().whileTrue(new ClimbUp(climberSubsystem));
+
+  //   fuelSubsystem.setDefaultCommand(fuelSubsystem.run(() -> fuelSubsystem.stop()));
+
+  //   climberSubsystem.setDefaultCommand(climberSubsystem.run(() -> climberSubsystem.stop()));
   }
 
   /**

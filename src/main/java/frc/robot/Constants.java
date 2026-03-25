@@ -34,6 +34,7 @@ public final class Constants {
     public static final double INDEXER_INTAKING_PERCENT = -.8; 
     public static final double INDEXER_LAUNCHING_PERCENT = 0.6;
     public static final double INDEXER_SPIN_UP_PRE_LAUNCH_PERCENT = -0.5;
+    public static final double LAUNCHING_INTAKE_SIDE = -1;
 
     public static final double INTAKE_INTAKING_PERCENT = 0.6;
     public static final double LAUNCHING_LAUNCHER_PERCENT = .85;

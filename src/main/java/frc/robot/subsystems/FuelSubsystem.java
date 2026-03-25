@@ -36,6 +36,7 @@ public class FuelSubsystem extends SubsystemBase {
     // the config to the controller
     SparkMaxConfig feederConfig = new SparkMaxConfig();
     feederConfig.smartCurrentLimit(INDEXER_MOTOR_CURRENT_LIMIT);
+    feederConfig.inverted(true);
     Indexer.configure(feederConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
     // create the configuration for the launcher roller, set a current limit, set
@@ -46,8 +47,9 @@ public class FuelSubsystem extends SubsystemBase {
     launcherConfig.smartCurrentLimit(LAUNCHER_MOTOR_CURRENT_LIMIT);
     launcherConfig.voltageCompensation(12);
     launcherConfig.idleMode(IdleMode.kCoast);
-    RightIntakeLauncher.configure(launcherConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     launcherConfig.inverted(true);
+    RightIntakeLauncher.configure(launcherConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+    launcherConfig.inverted(false);
     LeftIntakeLauncher.configure(launcherConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
     // put default values for various fuel operations onto the dashboard
@@ -58,6 +60,7 @@ public class FuelSubsystem extends SubsystemBase {
     SmartDashboard.putNumber("Intaking intake roller value", INTAKE_INTAKING_PERCENT);
     SmartDashboard.putNumber("Launching feeder roller value", INDEXER_LAUNCHING_PERCENT);
     SmartDashboard.putNumber("Launching launcher roller value", LAUNCHING_LAUNCHER_PERCENT);
+    SmartDashboard.putNumber("Intaking launcher roller value", LAUNCHING_LAUNCHER_PERCENT);
     //SmartDashboard.putNumber("Spin-up feeder roller value", SPIN_UP_FEEDER_VOLTAGE);
   }
 
@@ -65,6 +68,9 @@ public class FuelSubsystem extends SubsystemBase {
   public void setIntakeLauncherRoller(double power) {
     LeftIntakeLauncher.set(power);
     RightIntakeLauncher.set(power); // positive for shooting
+  }
+  public void setIntakeSideRoller(double power){
+    LeftIntakeLauncher.set(power);
   }
 
   // A method to set the voltage of the intake roller
@@ -82,5 +88,6 @@ public class FuelSubsystem extends SubsystemBase {
   @Override
   public void periodic() {
     // This method will be called once per scheduler run
+    //LeftIntakeLauncher.set(.5);
   }
 }

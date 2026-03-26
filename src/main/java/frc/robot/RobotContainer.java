@@ -104,10 +104,12 @@ public class RobotContainer {
 
         // While the left bumper on operator controller is held, intake Fuel
         operatorController.leftBumper().whileTrue(new Intake(fuelSubsystem));
+        //operatorController.leftBumper().whileTrue(new LaunchSequence(fuelSubsystem));
 
         // While the right bumper on the operator controller is held, spin up for 1
         // second, then launch fuel. When the button is released, stop.
         operatorController.rightBumper().whileTrue(new LaunchSequence(fuelSubsystem));
+        //operatorController.rightBumper().whileTrue(new Intake(fuelSubsystem));
 
         // While the A button is held on the operator controller, eject fuel back out
         // the intake
@@ -129,5 +131,5 @@ public class RobotContainer {
         return autoChooser.getSelected();
     }
 
-    
+
 }

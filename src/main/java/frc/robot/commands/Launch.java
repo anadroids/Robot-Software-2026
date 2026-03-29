@@ -27,7 +27,7 @@ public class Launch extends Command {
     fuelSubsystem
         .setIntakeLauncherRoller(
             SmartDashboard.getNumber("Launching launcher roller value", LAUNCHING_LAUNCHER_PERCENT));
-    fuelSubsystem.setFeederRoller(SmartDashboard.getNumber("Launching feeder roller value", INDEXER_LAUNCHING_PERCENT));
+    fuelSubsystem.setFeederRoller(SmartDashboard.getNumber("Launching feeder roller value", -INDEXER_LAUNCHING_PERCENT));
     //fuelSubsystem.setIntakeSideRoller(SmartDashboard.getNumber("Intaking launcher roller value", LAUNCHING_INTAKE_SIDE));
   }
 

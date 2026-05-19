@@ -43,8 +43,8 @@ public class RobotContainer {
 
     // The robot's subsystems
     public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
-    private final FuelSubsystem fuelSubsystem = new FuelSubsystem();
-    private final ClimberSubsystem climberSubsystem = new ClimberSubsystem();
+    //private final FuelSubsystem fuelSubsystem = new FuelSubsystem();
+    //private final ClimberSubsystem climberSubsystem = new ClimberSubsystem();
 
     // The driver's controller
     private final CommandXboxController driverController = new CommandXboxController(
@@ -103,27 +103,27 @@ public class RobotContainer {
         drivetrain.registerTelemetry(logger::telemeterize);
 
         // While the left bumper on operator controller is held, intake Fuel
-        operatorController.leftBumper().whileTrue(new Intake(fuelSubsystem));
+        //operatorController.leftBumper().whileTrue(new Intake(fuelSubsystem));
         //operatorController.leftBumper().whileTrue(new LaunchSequence(fuelSubsystem));
 
         // While the right bumper on the operator controller is held, spin up for 1
         // second, then launch fuel. When the button is released, stop.
-        operatorController.rightBumper().whileTrue(new LaunchSequence(fuelSubsystem));
+        //operatorController.rightBumper().whileTrue(new LaunchSequence(fuelSubsystem));
         //operatorController.rightBumper().whileTrue(new Intake(fuelSubsystem));
 
         // While the A button is held on the operator controller, eject fuel back out
         // the intake
-        operatorController.a().whileTrue(new Eject(fuelSubsystem));
+        //operatorController.a().whileTrue(new Eject(fuelSubsystem));
 
         // While the down arrow on the directional pad is held it will unclimb the robot
-        operatorController.povDown().whileTrue(new ClimbDown(climberSubsystem));
+        //operatorController.povDown().whileTrue(new ClimbDown(climberSubsystem));
         
         // While the up arrow on the directional pad is held it will cimb the robot
-        operatorController.povUp().whileTrue(new ClimbUp(climberSubsystem));
+        //operatorController.povUp().whileTrue(new ClimbUp(climberSubsystem));
 
-        fuelSubsystem.setDefaultCommand(fuelSubsystem.run(() -> fuelSubsystem.stop()));
+        //fuelSubsystem.setDefaultCommand(fuelSubsystem.run(() -> fuelSubsystem.stop()));
 
-        climberSubsystem.setDefaultCommand(climberSubsystem.run(() -> climberSubsystem.stop()));
+        //climberSubsystem.setDefaultCommand(climberSubsystem.run(() -> climberSubsystem.stop()));
     }
 
     public Command getAutonomousCommand() {
